@@ -15,23 +15,37 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install GCC
-        uses: egor-tensin/setup-mingw@v2
+        uses: egor-tensin/setup-mingw@v3
+        with:
+          platform: x64
+
+      - name: Check GCC
+        run: gcc --version
+        shell: pwsh
 
       - name: Compile C Programs
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path output
 
-          Get-ChildItem -Filter *.c | ForEach-Object {
-            $name = $_.BaseName
+          $files = Get-ChildItem -Path . -Filter *.c -File
 
-            Copy-Item $_.FullName "output/$name.c"
+          if ($files.Count -eq 0) {
+            throw "No C files found in repository root."
+          }
 
-            gcc $_.Name -o "output/$name.exe"
+          foreach ($file in $files) {
+            $name = $file.BaseName
+
+            Copy-Item $file.FullName "output/$name.c"
+
+            gcc $file.FullName -o "output/$name.exe"
 
             if ($LASTEXITCODE -ne 0) {
               throw "Compilation failed: $name"
             }
+
+            Write-Host "Successfully compiled: $name"
           }
 
       - name: Upload Code and EXE Files
