@@ -1,0 +1,41 @@
+
+name: Build C Programs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install GCC
+        uses: egor-tensin/setup-gcc@v1
+
+      - name: Compile C Programs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path output
+
+          Get-ChildItem *.c | ForEach-Object {
+            $name = $_.BaseName
+
+            Copy-Item $_.FullName "output/$name.c"
+
+            gcc $_.Name -o "output/$name.exe"
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Compilation failed: $name"
+            }
+          }
+
+      - name: Upload Code and EXE Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: C-Code-and-EXE-Files
+          path: output/*
